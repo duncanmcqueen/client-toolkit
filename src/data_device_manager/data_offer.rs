@@ -436,9 +436,11 @@ impl PartialEq for UndeterminedOffer {
 /// Fails if too many file descriptors were already open and a pipe
 /// could not be created.
 pub fn receive(offer: &WlDataOffer, mime_type: String) -> std::io::Result<ReadPipe> {
-    use rustix::pipe::{pipe_with, PipeFlags};
     // create a pipe
-    let (readfd, writefd) = pipe_with(PipeFlags::CLOEXEC)?;
+    #[cfg(not(target_os = "haiku"))]
+    let (readfd, writefd) = rustix::pipe::pipe_with(rustix::pipe::PipeFlags::CLOEXEC)?;
+    #[cfg(target_os = "haiku")]
+    let (readfd, writefd) = crate::haiku::pipe_cloexec()?;
 
     receive_to_fd(offer, mime_type, writefd);
 
